@@ -10,7 +10,7 @@ static char *HTTP_METHODS[MAXM] = {
 
 /* Function Proto-type */
 static int parse_version(char *uri);
-static int parse_uri(char *uri, char *method);
+static int parse_uri(char *uri, char *method, char *hostname);
 /* End */
 
 static int parse_version(char *version)
@@ -38,23 +38,25 @@ static int parse_version(char *version)
 	return 1;
 }
 
-static int parse_uri(char *uri, char *method)
+static int parse_uri(char *uri, char *method, char *hostname)
 {
 	int len, i=0, port;
 
-	char *hold, word[MAXLINE], hostname[MAXLINE];
+	char *hold, word[MAXLINE];
 	/* This proxy recieves a request with an absolute-form of request-target. */
 	/* http://www.google.com/ */
 	hold = uri;
 
 	if (!strcmp("CONNECT", method)) {
-		while ((*hold != '\0') && (*hold++ != ':'));
+		while ((*hold != '\0') && (*hold++ != ':'))
+			hostname[i++] = *hold;
+		hostname[i] = '\0';
 		if ((sscanf(hold, "%3d", &port) != 1) || (port != 443))
 			return 0;
 		return 1;
 	}
 
-	
+	i=0;
 	sscanf(hold, "%7s%n", word, &len);
 	if (strcmp("http://", word))
 		return 0;
@@ -67,14 +69,12 @@ static int parse_uri(char *uri, char *method)
 		++hold;
 	}
 	hostname[i] = '\0';
-	//sprintf(word, "www.%s\r\n", hostname);
-	sprintf(word, "%s\r\n", hostname);
+	sprintf(word, "%s", hostname);
 	strcpy(hostname, word);
-	//printf("Host: %s", hostname);
 	return 1;
 }
 
-int Parse_StartLine(const char *string, char *method, char *uri, char *version)
+int Parse_StartLine(const char *string, char *method, char *uri, char *version, char *hostname)
 {
 	int len;
 	char *hold;
@@ -100,7 +100,7 @@ int Parse_StartLine(const char *string, char *method, char *uri, char *version)
 		return 0;
 	}
 	sscanf(hold, "%s%n", uri, &len);
-	if (!parse_uri(uri, method)) {
+	if (!parse_uri(uri, method, hostname)) {
 		Client_Error();     // Bad uri
 		return 0;
 	}

@@ -9,7 +9,7 @@
 /* Function Proto-type */
 void Client_Error();
 int Wrong_Method(const char *method);
-int Parse_StartLine(const char *string, char *method, char *uri, char *version);
+int Parse_StartLine(const char *string, char *method, char *uri, char *version, char *hostname);
 
 
 

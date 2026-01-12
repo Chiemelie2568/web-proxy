@@ -15,6 +15,7 @@
 
 
 /* Function Proto-type */
+void Response(int clientfd, int connfd, char *buf);
 void RRequest(int connfd);
 void *thread(void *vargp);
 
@@ -70,19 +71,60 @@ void *thread(void *vargp)
 /* Recieve request from client */
 void RRequest(int connfd)
 {
-	rio_t rio;
-	char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
+	rio_t rio, rio_c;
+	int clientfd;
+	char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE], hostname[MAXLINE];
 
 	Rio_readinitb(&rio, connfd);
 	Rio_readlineb(&rio, buf, MAXLINE);
 
-	printf("%s", buf);
-	if (!Parse_StartLine(buf, method, uri, version))  // Bad request
+	if (!Parse_StartLine(buf, method, uri, version, hostname)) { // Bad request
+		printf("%s\n", buf);
 		return;
+	}
 
-	//printf("%s %s %s\r\n\r\n", method, uri, version);
-	/* Building header */
+	clientfd = Open_clientfd(hostname, "80");
+	Rio_readinitb(&rio_c, clientfd);
+
+	while (strcmp(buf, "\r\n")) {
+		printf("%s", buf);
+		Rio_writen(clientfd, buf, strlen(buf));
+		Rio_readlineb(&rio, buf, MAXLINE);
+	}
+	Rio_writen(clientfd, buf, strlen(buf));
+	
+	// Reading Header Info.
+	printf("\n");
+	do {
+		Rio_readlineb(&rio_c, buf, MAXLINE);
+		Rio_writen(connfd, buf, strlen(buf));
+		printf("%s", buf);
+	} while (strcmp(buf, "\r\n"));
+	Rio_writen(connfd, buf, strlen(buf));
+
+	// Reading & Writing Body.
+	do {
+		Rio_readlineb(&rio_c, buf, MAXLINE);
+		Rio_writen(connfd, buf, strlen(buf));
+		printf("%s", buf);
+	} while (strcmp(buf, "\r\n"));
 }
 
+void Response(int clientfd, int connfd, char *buf)
+{
+	rio_t rio;
+	char buf1[MAXLINE];
+
+	Rio_readinitb(&rio, clientfd);
+	Rio_readlineb(&rio, buf1, MAXLINE);
+	printf("%s", buf1);
+	/*
+	while (strcmp(buf, "\r\n")) {
+		printf("%s", buf1);
+		Rio_readlineb(&rio, buf1, MAXLINE);
+	}
+	*/
+	printf("\n");
+}
 
 
